@@ -1,29 +1,36 @@
 # Academic Service API
 
-Layered Flask service with Waitress, SQLite, repositories, services, controllers, and Bearer-token interceptor.
+Servicio Flask con arquitectura por capas (Waitress, SQLite) y autenticación por Bearer token.
 
-## Architecture
+**Estructura principal**
+- `app/models`: entidades y mapeos ORM
+- `app/repositories`: persistencia
+- `app/services`: reglas de negocio
+- `app/controllers`: rutas REST
+- `app/middleware`: interceptor de autorizaciones
+- `app/utils`: utilidades (security, serializers, db init)
+- `run.py`: entrada con Waitress
 
-- `app/models`: entities and ORM mappings
-- `app/repositories`: data access layer
-- `app/services`: business rules
-- `app/controllers`: REST presentation layer
-- `app/middleware`: auth interceptor
-- `app/utils`: security, serialization, db bootstrap
-- `run.py`: Waitress entry point
-
-## Auth interceptor
-
-`app/middleware/auth_interceptor.py` validates the `Authorization: Bearer <token>` header.
-Excluded endpoints:
+**Interceptor de auth**
+El archivo `app/middleware/auth_interceptor.py` valida el header `Authorization: Bearer <token>`.
+Endpoints excluidos del interceptor:
 - `POST /api/auth/login`
 - `POST /api/auth/register-admin`
 - `POST /api/users/public/register-student`
 - `POST /api/users/public/register-teacher`
 - `GET /health`
 
-## Run
+**Instalación y ejecución**
 
+Windows (PowerShell):
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python run.py
+```
+
+Unix / macOS:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -31,83 +38,41 @@ pip install -r requirements.txt
 python run.py
 ```
 
-Default seed user:
+Usuario por defecto (seed):
 - email: `admin@example.com`
 - password: `Admin123*`
 
-## CRUD coverage
+**Colección Postman**
 
-### Auth
-- `POST /api/auth/login`
-- `POST /api/auth/register-admin`
+Incluye una colección lista para usar en `academic_service/postman/academic_service_grouped_by_entity.postman_collection.json`.
 
-### Users
-- `POST /api/users/`
-- `GET /api/users/`
-- `GET /api/users/<user_id>`
-- `PUT /api/users/<user_id>`
-- `DELETE /api/users/<user_id>`
-- `PATCH /api/users/<user_id>/deactivate`
-- `GET /api/users/search?...`
+Pasos rápidos para usarla:
+1. Abrir Postman → Import → seleccionar el archivo `academic_service/postman/academic_service_grouped_by_entity.postman_collection.json`.
+2. En la colección, editar la variable `base_url` (por defecto `http://127.0.0.1:5000`) si tu servidor corre en otra URL.
+3. Ejecutar la request `Auth → Login` con el usuario seed para obtener `access_token`.
+4. Copiar el token al entorno/variable `access_token` o usar Postman pre-request script para setear `Authorization: Bearer {{access_token}}`.
 
-### Academic generic CRUD
-Supported entities:
-- `careers`
-- `semesters`
-- `subjects`
-- `study-plans`
-- `groups`
-- `registrations`
-- `enrollments`
-- `students` (read/search/delete through generic endpoints)
-- `teachers` (read/search/delete through generic endpoints)
+Ejemplo rápido con `curl` para login y uso posterior:
 
-Generic routes:
-- `GET /api/academic/<entity_name>`
-- `GET /api/academic/<entity_name>/<entity_id>`
-- `PUT /api/academic/<entity_name>/<entity_id>`
-- `DELETE /api/academic/<entity_name>/<entity_id>`
-- `GET /api/academic/<entity_name>/search?<field>=<value>`
+```bash
+# Obtener token
+curl -s -X POST http://127.0.0.1:5000/api/auth/login \
+	-H "Content-Type: application/json" \
+	-d '{"email":"admin@example.com","password":"Admin123*"}'
 
-Specific create/actions:
-- `POST /api/academic/careers`
-- `POST /api/academic/semesters`
-- `POST /api/academic/subjects`
-- `POST /api/academic/study-plans`
-- `POST /api/academic/groups`
-- `PATCH /api/academic/groups/<group_id>/assign-teacher/<teacher_id>`
-- `POST /api/academic/registrations`
-- `POST /api/academic/enrollments`
+# Ejemplo: usar token (reemplaza <TOKEN> por el valor obtenido)
+curl -X GET http://127.0.0.1:5000/api/users/ \
+	-H "Authorization: Bearer <TOKEN>"
+```
 
-### Evaluation generic CRUD
-Supported entities:
-- `rubrics`
-- `criteria`
-- `scales`
-- `evaluations`
-- `grades`
-- `grade-details`
+La colección ya contiene variables útiles (`base_url`, `access_token`, `user_id`, etc.) para automatizar pruebas.
 
-Generic routes:
-- `GET /api/evaluation/<entity_name>`
-- `GET /api/evaluation/<entity_name>/<entity_id>`
-- `PUT /api/evaluation/<entity_name>/<entity_id>`
-- `DELETE /api/evaluation/<entity_name>/<entity_id>`
-- `GET /api/evaluation/<entity_name>/search?<field>=<value>`
+**Resumen de endpoints**
+Las rutas están organizadas por dominios `auth`, `users`, `academic`, `evaluation`. La colección Postman agrupa peticiones por entidad (careers, subjects, rubrics, etc.).
 
-Specific create/actions:
-- `POST /api/evaluation/rubrics`
-- `POST /api/evaluation/criteria`
-- `POST /api/evaluation/scales`
-- `PATCH /api/evaluation/rubrics/<rubric_id>/publish`
-- `POST /api/evaluation/evaluations`
-- `PATCH /api/evaluation/evaluations/<evaluation_id>/associate-rubric/<rubric_id>`
-- `POST /api/evaluation/grades`
-- `POST /api/evaluation/groups/<group_id>/register-final-scores`
+Si quieres, puedo:
+- Añadir ejemplos de requests concretos al README.
+- Ejecutar los comandos `git rm --cached` para desindexar `.venv` si ya está en el repo.
 
-## Design notes
-
-- Only `1-1` and `1-n` relationships are used.
-- `n-n` cases were resolved using bridge entities such as `Registration`, `Enrollment`, `StudyPlan`, and `GradeDetail`.
-- Search is generic by query-string attribute name.
-- Some business operations remain specialized even though the entities also expose generic CRUD routes.
+---
+Referencias: colección Postman: `academic_service/postman/academic_service_grouped_by_entity.postman_collection.json`.
