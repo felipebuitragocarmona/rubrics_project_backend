@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from .config.settings import Config
 from .models import db
 from .middleware.auth_interceptor import auth_middleware
@@ -14,6 +15,10 @@ def create_app():
     app.config.from_object(Config)
 
     db.init_app(app)
+
+    # Habilitar CORS para el frontend. `CORS_ORIGINS` puede ser '*' o una cadena con orígenes separados por comas.
+    cors_origins = app.config.get('CORS_ORIGINS', '*')
+    CORS(app, resources={r"/*": {"origins": cors_origins}}, supports_credentials=True)
 
     app.before_request(auth_middleware)
 
