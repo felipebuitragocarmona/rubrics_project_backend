@@ -16,9 +16,11 @@ def create_app():
 
     db.init_app(app)
 
-    # Habilitar CORS para el frontend. `CORS_ORIGINS` puede ser '*' o una cadena con orígenes separados por comas.
-    cors_origins = app.config.get('CORS_ORIGINS', '*')
-    CORS(app, resources={r"/*": {"origins": cors_origins}}, supports_credentials=True)
+    CORS(
+    app,
+    resources={r"/*": {"origins": "*"}},
+    supports_credentials=False
+    )
 
     app.before_request(auth_middleware)
 
