@@ -68,12 +68,10 @@ Criterios de aceptación:
 **HU-06 — Matricular estudiante**
 **Actor:** Administrador
 
-*Como administrador, quiero matricular estudiantes en las asignaturas de su carrera para que queden inscritos en los grupos correspondientes.*
+*Como administrador, quiero matricular estudiantes en las en las carreras*
 
 Criterios de aceptación:
-1. Se puede matricular un estudiante en una o varias asignaturas del semestre activo.
-2. Se genera un registro de matrícula con fecha y estado.
-3. El administrador puede cancelar una matrícula antes del cierre del semestre.
+1. Se puede matricular un estudiante en una o varias carreras.
 
 **HU-07 — Inscribir estudiante en grupo**
 **Actor:** Administrador
