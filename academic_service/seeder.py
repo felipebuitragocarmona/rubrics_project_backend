@@ -6,6 +6,7 @@ from app.models.entities import (
     Evaluation, Grade, GradeDetail
 )
 from app.utils.security import hash_password
+from datetime import datetime
 
 app = create_app()
 
@@ -43,7 +44,10 @@ with app.app_context():
     for name, code, start, end in sem_data:
         s = Semester.query.filter_by(code=code).first()
         if not s:
-            s = Semester(name=name, code=code, start_date=start, end_date=end, is_active=False)
+            # Convert string dates to Python date objects for SQLite
+            start_date = datetime.strptime(start, '%Y-%m-%d').date() if isinstance(start, str) else start
+            end_date = datetime.strptime(end, '%Y-%m-%d').date() if isinstance(end, str) else end
+            s = Semester(name=name, code=code, start_date=start_date, end_date=end_date, is_active=False)
             ensure(s)
         semesters.append(s)
 
@@ -82,9 +86,16 @@ with app.app_context():
     teachers = []
     for idx in range(1, 4):
         email = f'teacher{idx}@example.com'
+        base_code = f'TCH-{idx:03d}'
         user = User.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email, password_hash=hash_password('Teacher123'), code=f'TCH-00{idx}', role='TEACHER')
+            # Avoid UNIQUE collisions on code by trying suffixes
+            code = base_code
+            suffix = 1
+            while User.query.filter_by(code=code).first():
+                code = f"{base_code}-{suffix}"
+                suffix += 1
+            user = User(email=email, password_hash=hash_password('Teacher123'), code=code, role='TEACHER')
             ensure(user)
         teacher = Teacher.query.filter_by(user_id=user.id).first()
         if not teacher:
@@ -96,9 +107,15 @@ with app.app_context():
     students = []
     for idx in range(1, 4):
         email = f'student{idx}@example.com'
+        base_code = f'STU-{idx:03d}'
         user = User.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email, password_hash=hash_password('Student123'), code=f'STU-00{idx}', role='STUDENT')
+            code = base_code
+            suffix = 1
+            while User.query.filter_by(code=code).first():
+                code = f"{base_code}-{suffix}"
+                suffix += 1
+            user = User(email=email, password_hash=hash_password('Student123'), code=code, role='STUDENT')
             ensure(user)
         student = Student.query.filter_by(user_id=user.id).first()
         if not student:
