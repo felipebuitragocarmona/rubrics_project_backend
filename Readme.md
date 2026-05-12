@@ -227,13 +227,13 @@ Criterios de aceptación:
 |---|---|
 | **Caso de uso** | CU-03 – Gestionar plan de estudios |
 | **Actor(es)** | Administrador |
-| **Descripción** | Permite definir y versionar el conjunto de `Asignatura`s que conforman el plan de estudios de una `Carrera` mediante registros `PlanEstudio`. Las asignaturas se seleccionan del catálogo existente. |
-| **Entidades involucradas** | `PlanEstudio`, `Carrera`, `Asignatura` |
-| **Precondiciones** | Existe al menos una `Carrera` registrada. Existe al menos una `Asignatura` activa en el catálogo. El administrador ha iniciado sesión. |
-| **Postcondiciones** | Se crean o actualizan registros `PlanEstudio` con `carrera_id`, `asignatura_id`, `nombre` y `anio`. Se conserva el historial de versiones por `anio`. |
-| **Flujo principal** | 1. El administrador selecciona una `Carrera` (por `carrera_id`). 2. Accede al `PlanEstudio` activo (mayor `anio` publicado). 3. Para agregar una asignatura: busca en el catálogo por `nombre` o `codigo` y la vincula al plan indicando el semestre sugerido. 4. Para remover una asignatura: la desvincula del plan siempre que no tenga `Inscripcion`es activas. 5. Repite los pasos 3 y 4 hasta completar la estructura del plan. 6. Publica la nueva versión asignando el `anio` correspondiente. |
-| **Flujos alternativos** | 6a. Si guarda como borrador, el `PlanEstudio` anterior (menor `anio`) sigue vigente hasta que se publique la nueva versión. |
-| **Excepciones** | E1: Intento de remover una `Asignatura` que tiene `Inscripcion`es activas en algún `Grupo` → operación bloqueada. E2: Plan sin ninguna `Asignatura` vinculada → no se permite publicar. |
+| **Descripción** | Permite definir y versionar el conjunto de `Asignatura`s que conforman el plan de estudios de una `Carrera`. Un `Career` puede tener múltiples `StudyPlan` (1:N) y cada `StudyPlan` vincula múltiples `Subject` mediante la tabla intermedia `study_plan_subjects` (M:N). |
+| **Entidades involucradas** | `StudyPlan`, `Career`, `Subject`, `study_plan_subjects` |
+| **Precondiciones** | Existe al menos una `Career` registrada. Existe al menos una `Subject` activa en el catálogo. El administrador ha iniciado sesión. |
+| **Postcondiciones** | Se crean o actualizan registros `StudyPlan` con `career_id`, `nombre` y `anio`. Las asignaturas asociadas se almacenan en la tabla intermedia `study_plan_subjects` (la tabla intermedia puede contener campos adicionales como `suggested_semester` si se requiere). Se conserva el historial de versiones por `anio`. |
+| **Flujo principal** | 1. El administrador selecciona una `Career` (por `career_id`). 2. Accede al `StudyPlan` activo (mayor `anio` publicado) o crea una nueva versión. 3. Para agregar una `Subject`: la busca en el catálogo por `name` o `code` y la vincula al `StudyPlan` (inserción en `study_plan_subjects`), opcionalmente indicando `suggested_semester` para esa asignatura dentro del plan. 4. Para remover una `Subject`: se elimina la fila correspondiente en `study_plan_subjects` siempre que no existan inscripciones activas dependientes. 5. Repite los pasos 3 y 4 hasta completar la estructura del plan. 6. Publica la nueva versión asignando el `anio` correspondiente. |
+| **Flujos alternativos** | 6a. Si guarda como borrador, el `StudyPlan` anterior (menor `anio`) sigue vigente hasta que se publique la nueva versión. |
+| **Excepciones** | E1: Intento de remover una `Subject` que tiene `Enrollment`es activas en algún `Group` → operación bloqueada. E2: Plan sin ninguna `Subject` vinculada → no se permite publicar. |
 
 ---
 
@@ -243,13 +243,13 @@ Criterios de aceptación:
 |---|---|
 | **Caso de uso** | CU-04 – Gestionar asignaturas |
 | **Actor(es)** | Administrador |
-| **Descripción** | Permite crear, editar y archivar `Asignatura`s en el catálogo del sistema, manteniéndolas disponibles para ser vinculadas a planes de estudio y grupos. |
-| **Entidades involucradas** | `Asignatura` |
+| **Descripción** | Permite crear, editar y archivar `Subject`s en el catálogo del sistema, manteniéndolas disponibles para ser vinculadas a `StudyPlan`s (vía `study_plan_subjects`) y a `Group`s. |
+| **Entidades involucradas** | `Subject`, `study_plan_subjects` |
 | **Precondiciones** | El administrador ha iniciado sesión. |
-| **Postcondiciones** | La `Asignatura` queda creada, actualizada o archivada en el catálogo. Se actualiza `updated_at` en cada operación. |
-| **Flujo principal** | 1. El administrador accede al catálogo de asignaturas. 2. Selecciona la acción: **Crear / Editar / Archivar**. 3. Para **crear**: ingresa `nombre`, `codigo` (único), `descripcion` y `creditos`; el sistema asigna `id` y `created_at`. 4. Para **editar**: modifica `nombre`, `descripcion` o `creditos` siempre que la asignatura no tenga `Grupo`s activos en el semestre vigente. 5. Para **archivar**: el sistema verifica que la asignatura no esté vinculada a ningún `Grupo` activo ni a un `PlanEstudio` vigente, luego la marca como inactiva. 6. El sistema confirma la operación y actualiza `updated_at`. |
-| **Flujos alternativos** | 1a. El administrador puede filtrar el catálogo por estado (activa/archivada) o por `creditos` antes de seleccionar una asignatura. |
-| **Excepciones** | E1: `Asignatura.codigo` duplicado al crear → operación rechazada, el sistema indica que ya existe y ofrece buscarla en el catálogo. E2: `creditos` con valor menor o igual a cero → el sistema rechaza e indica que el valor debe ser positivo. E3: Intento de archivar una asignatura con `Grupo`s activos o en un `PlanEstudio` vigente → operación bloqueada. |
+| **Postcondiciones** | La `Subject` queda creada, actualizada o archivada en el catálogo. Las vinculaciones con `StudyPlan`s se almacenan en `study_plan_subjects`. Se actualiza `updated_at` en cada operación. |
+| **Flujo principal** | 1. El administrador accede al catálogo de asignaturas. 2. Selecciona la acción: **Crear / Editar / Archivar**. 3. Para **crear**: ingresa `name`, `code` (único), `description` y `credits`; el sistema asigna `id` y `created_at`. 4. Para **editar**: modifica `name`, `description` o `credits` siempre que la asignatura no tenga `Group`s activos en el semestre vigente. 5. Para **archivar**: el sistema verifica que la asignatura no esté vinculada a ningún `Group` activo ni a un `StudyPlan` vigente (revisando `study_plan_subjects`), luego la marca como inactiva. 6. El sistema confirma la operación y actualiza `updated_at`. |
+| **Flujos alternativos** | 1a. El administrador puede filtrar el catálogo por estado (activa/archivada) o por `credits` antes de seleccionar una asignatura. |
+| **Excepciones** | E1: `Subject.code` duplicado al crear → operación rechazada, el sistema indica que ya existe y ofrece buscarla en el catálogo. E2: `credits` con valor menor o igual a cero → el sistema rechaza e indica que el valor debe ser positivo. E3: Intento de archivar una asignatura con `Group`s activos o vinculaciones en `study_plan_subjects` a un `StudyPlan` vigente → operación bloqueada. |
 
 
 ---
@@ -301,7 +301,7 @@ Criterios de aceptación:
 
 ---
 
-## CU-08 — Crear rúbrica de evaluación
+## CU-08 — Corrección
 
 | Campo | Detalle |
 |---|---|
@@ -318,7 +318,7 @@ Criterios de aceptación:
 
 ---
 
-## CU-09 — Definir criterios y escalas
+## CU-09 — Corrección
 
 | Campo | Detalle |
 |---|---|
@@ -334,7 +334,7 @@ Criterios de aceptación:
 
 ---
 
-## CU-10 — Asociar rúbrica a evaluación
+## CU-10 — Corrección
 
 | Campo | Detalle |
 |---|---|
@@ -350,7 +350,7 @@ Criterios de aceptación:
 
 ---
 
-## CU-11 — Calificar estudiante con rúbrica
+## CU-11 — Corrección
 
 | Campo | Detalle |
 |---|---|
@@ -368,7 +368,7 @@ Criterios de aceptación:
 
 ---
 
-## CU-12 — Registrar nota final
+## CU-12 — Corrección
 
 | Campo | Detalle |
 |---|---|
