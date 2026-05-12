@@ -96,7 +96,6 @@ class Subject(TimestampMixin, db.Model):
     groups = db.relationship('Group', back_populates='subject')
     study_plans = db.relationship('StudyPlan', back_populates='subject')
     evaluations = db.relationship('Evaluation', back_populates='subject')
-    rubrics = db.relationship('Rubric', back_populates='subject')
 
 
 class StudyPlan(TimestampMixin, db.Model):
@@ -161,13 +160,10 @@ class Registration(TimestampMixin, db.Model):
 class Rubric(TimestampMixin, db.Model):
     __tablename__ = 'rubrics'
     id = db.Column(db.String(36), primary_key=True, default=generate_uuid)
-    subject_id = db.Column(db.String(36), db.ForeignKey('subjects.id'), nullable=False)
     title = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text)
     is_public = db.Column(db.Boolean, nullable=False, default=False)
     is_archived = db.Column(db.Boolean, nullable=False, default=False)
-
-    subject = db.relationship('Subject', back_populates='rubrics')
     criteria = db.relationship('Criterion', back_populates='rubric', cascade='all, delete-orphan')
     grades = db.relationship('Grade', back_populates='rubric')
     evaluations = db.relationship('Evaluation', back_populates='rubric')
